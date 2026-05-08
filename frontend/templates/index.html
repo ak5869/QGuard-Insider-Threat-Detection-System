@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantumWatch — Quantum ML Threat Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05020f;--bg2:#0a0520;--bg3:#0f0830;--panel:#0d0625;
+  --border:#2a1550;--border2:#3d2080;
+  --purple:#7b2fbe;--purple2:#9b4fde;--purple-glow:rgba(123,47,190,.3);
+  --cyan:#00e5ff;--cyan-glow:rgba(0,229,255,.2);
+  --amber:#ffaa00;--green:#00ff88;--red:#ff2a2a;
+  --text:#c8c0f0;--text-dim:#5a4a90;--text-bright:#e8e0ff;
+  --mono:'Share Tech Mono',monospace;--display:'Orbitron',monospace;--body:'Rajdhani',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);pointer-events:none;z-index:9999}
+
+/* Quantum particle bg */
+body::after{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 20% 50%,rgba(123,47,190,.04) 0%,transparent 70%),
+  radial-gradient(ellipse 40% 60% at 80% 30%,rgba(0,229,255,.03) 0%,transparent 70%);
+  pointer-events:none;z-index:0}
+
+#auth-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10000}
+.auth-box{background:var(--panel);border:1px solid var(--border2);padding:48px;width:420px;max-width:95vw;position:relative}
+.auth-box::before{content:'';position:absolute;inset:0;border:1px solid var(--purple);opacity:.3;pointer-events:none}
+.auth-logo{font-family:var(--display);font-size:20px;font-weight:900;letter-spacing:3px;color:var(--text-bright);text-align:center;margin-bottom:6px}
+.auth-logo span{color:var(--purple2)}
+.auth-sub{font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;letter-spacing:2px;margin-bottom:8px}
+.auth-qml{font-family:var(--mono);font-size:9px;color:var(--cyan);text-align:center;letter-spacing:1px;margin-bottom:32px;opacity:.7}
+.form-group{margin-bottom:18px}
+.form-group label{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;display:block;margin-bottom:6px}
+.form-group input{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text-bright);font-family:var(--mono);font-size:13px;padding:10px 12px;outline:none;transition:border-color .2s}
+.form-group input:focus{border-color:var(--purple2)}
+.btn{width:100%;font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:var(--purple);color:var(--text-bright);border:none;padding:13px;cursor:pointer;transition:box-shadow .2s;margin-top:8px}
+.btn:hover{box-shadow:0 0 24px var(--purple-glow)}
+.btn-outline{background:transparent;color:var(--text-dim);border:1px solid var(--border2)}
+.auth-err{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:10px;text-align:center;min-height:16px}
+.auth-switch{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:center;margin-top:20px}
+.auth-switch a{color:var(--purple2);cursor:pointer}
+#app{display:none;min-height:100vh;position:relative;z-index:1}
+
+nav.topnav{position:fixed;top:0;left:260px;right:0;height:60px;background:rgba(5,2,15,.95);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;z-index:100;backdrop-filter:blur(8px)}
+.nav-title{font-family:var(--display);font-size:13px;font-weight:700;color:var(--text-bright);letter-spacing:1px}
+.nav-right{display:flex;align-items:center;gap:20px}
+.nav-user{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.nav-user span{color:var(--text-bright)}
+.nav-role{font-family:var(--mono);font-size:9px;letter-spacing:2px;padding:3px 10px;border:1px solid;text-transform:uppercase}
+.nav-role.admin{border-color:rgba(123,47,190,.5);color:var(--purple2)}
+.nav-role.analyst{border-color:rgba(0,229,255,.4);color:var(--cyan)}
+.logout-btn{font-family:var(--mono);font-size:10px;color:var(--text-dim);background:transparent;border:1px solid var(--border);padding:5px 14px;cursor:pointer;transition:color .2s,border-color .2s}
+.logout-btn:hover{color:var(--purple2);border-color:var(--purple)}
+
+aside{position:fixed;left:0;top:0;bottom:0;width:260px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:200}
+.sidebar-logo{padding:20px 24px;border-bottom:1px solid var(--border)}
+.sidebar-logo-text{font-family:var(--display);font-size:16px;font-weight:900;letter-spacing:2px;color:var(--text-bright)}
+.sidebar-logo-text span{color:var(--purple2)}
+.sidebar-tagline{font-family:var(--mono);font-size:8px;color:var(--cyan);letter-spacing:2px;margin-top:4px;opacity:.8}
+.sidebar-nav{display:flex;flex-direction:column;padding:16px 0;flex:1}
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;padding:10px 24px;font-family:var(--body);font-weight:600;font-size:13px;color:var(--text-dim);cursor:pointer;transition:color .15s,background .15s;border-left:3px solid transparent;text-transform:uppercase}
+.nav-item:hover{color:var(--text-bright);background:rgba(123,47,190,.05)}
+.nav-item.active{color:var(--text-bright);border-left-color:var(--purple2);background:rgba(123,47,190,.1)}
+.sidebar-section-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;padding:16px 24px 6px;opacity:.5}
+.sidebar-bottom{padding:16px 24px;border-top:1px solid var(--border)}
+.model-status-pill{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+.status-dot{width:8px;height:8px;border-radius:50%}
+.status-dot.active{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse-dot 2s infinite}
+.status-dot.inactive{background:var(--amber)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Quantum circuit animation */
+.quantum-badge{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:var(--cyan);letter-spacing:1px;margin-top:8px;opacity:.7}
+.qubit-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:qubit 1.5s ease-in-out infinite}
+.qubit-dot:nth-child(2){animation-delay:.3s}
+.qubit-dot:nth-child(3){animation-delay:.6s}
+@keyframes qubit{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.8);opacity:.4}}
+
+main{margin-left:260px;padding-top:60px;min-height:100vh}
+.page{display:none;padding:32px;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page-header{margin-bottom:28px}
+.page-header h1{font-family:var(--display);font-size:22px;font-weight:700;color:var(--text-bright);letter-spacing:.5px}
+.page-header p{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:4px;letter-spacing:.5px}
+
+/* Stat cards */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:var(--panel);border:1px solid var(--border);padding:20px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.stat-card.red::after{background:var(--red);box-shadow:0 0 8px var(--red)}
+.stat-card.amber::after{background:var(--amber)}
+.stat-card.green::after{background:var(--green)}
+.stat-card.purple::after{background:var(--purple2);box-shadow:0 0 8px var(--purple2)}
+.stat-label{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.stat-val{font-family:var(--display);font-size:30px;font-weight:900}
+.stat-card.red .stat-val{color:var(--red)}
+.stat-card.amber .stat-val{color:var(--amber)}
+.stat-card.green .stat-val{color:var(--green)}
+.stat-card.purple .stat-val{color:var(--purple2)}
+
+/* Quantum model cards */
+.qml-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.qml-card{background:var(--panel);border:1px solid var(--border);padding:24px;position:relative;overflow:hidden}
+.qml-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.qml-card.vqc::before{background:linear-gradient(90deg,var(--purple2),var(--cyan))}
+.qml-card.qsvm::before{background:linear-gradient(90deg,var(--cyan),var(--purple2))}
+.qml-card-title{font-family:var(--display);font-size:13px;font-weight:700;color:var(--text-bright);margin-bottom:4px;letter-spacing:.5px}
+.qml-card-sub{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:16px;letter-spacing:.5px}
+.qml-metric{display:flex;justify-content:space-between;margin-bottom:8px;font-family:var(--mono);font-size:11px}
+.qml-metric-label{color:var(--text-dim)}
+.qml-metric-val{color:var(--cyan);font-weight:bold}
+
+.panel{background:var(--panel);border:1px solid var(--border);margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.panel-title{font-family:var(--display);font-size:13px;font-weight:700;color:var(--text-bright);letter-spacing:.5px}
+.panel-body{padding:20px}
+
+table{width:100%;border-collapse:collapse}
+.table-wrap{overflow-x:auto}
+th{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+td{font-family:var(--mono);font-size:11px;color:var(--text);padding:10px 14px;border-bottom:1px solid rgba(42,21,80,.5)}
+tr:hover td{background:rgba(123,47,190,.04)}
+.risk-badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 10px;font-weight:700;text-transform:uppercase}
+.risk-badge.high{background:rgba(255,42,42,.12);color:var(--red);border:1px solid rgba(255,42,42,.3)}
+.risk-badge.medium{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.3)}
+.risk-badge.low{background:rgba(0,255,136,.07);color:var(--green);border:1px solid rgba(0,255,136,.3)}
+.score-bar-cell{display:flex;align-items:center;gap:8px}
+.score-bar-track{width:80px;height:4px;background:var(--border)}
+.score-bar-fill{height:100%}
+.score-bar-fill.h{background:var(--red);box-shadow:0 0 4px var(--red)}
+.score-bar-fill.m{background:var(--amber)}
+.score-bar-fill.l{background:var(--green)}
+
+.upload-zone{border:2px dashed var(--border2);padding:48px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:20px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--purple2);background:rgba(123,47,190,.05)}
+.upload-title{font-family:var(--display);font-size:15px;color:var(--text-bright);margin-bottom:6px}
+.upload-sub{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+#file-input{display:none}
+.validation-result{background:var(--bg3);border:1px solid var(--border);padding:16px 20px;font-family:var(--mono);font-size:11px;line-height:1.8}
+.val-ok{color:var(--green)}.val-warn{color:var(--amber)}.val-err{color:var(--red)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.progress-bar-wrap{background:var(--border);height:6px;margin:8px 0}
+.progress-bar-fill{height:100%;background:var(--purple2);transition:width .4s;box-shadow:0 0 8px var(--purple-glow)}
+.upload-list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px}
+.upload-list-item:last-child{border-bottom:none}
+.status-pill{font-size:9px;letter-spacing:1px;padding:2px 10px;border:1px solid;text-transform:uppercase}
+.status-pill.completed{color:var(--green);border-color:rgba(0,255,136,.3)}
+.status-pill.processing{color:var(--amber);border-color:rgba(255,170,0,.3)}
+.status-pill.failed{color:var(--red);border-color:rgba(255,42,42,.3)}
+.status-pill.pending{color:var(--text-dim);border-color:var(--border2)}
+.train-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.metric-box{background:var(--bg3);border:1px solid var(--border);padding:18px;text-align:center}
+.metric-val{font-family:var(--display);font-size:26px;font-weight:700;color:var(--purple2)}
+.metric-label{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-top:4px;text-transform:uppercase}
+.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.filter-btn{font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 16px;border:1px solid var(--border2);color:var(--text-dim);background:transparent;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.filter-btn.active{color:var(--purple2);border-color:var(--purple);background:rgba(123,47,190,.1)}
+.filter-btn.f-medium.active{color:var(--amber);border-color:var(--amber);background:rgba(255,170,0,.07)}
+.filter-btn.f-low.active{color:var(--green);border-color:var(--green);background:rgba(0,255,136,.05)}
+.search-input{font-family:var(--mono);font-size:11px;background:var(--bg3);border:1px solid var(--border2);color:var(--text-bright);padding:6px 12px;outline:none;transition:border-color .2s;min-width:220px}
+.search-input:focus{border-color:var(--purple2)}
+.action-btn{font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:6px 16px;border:1px solid var(--border2);color:var(--text-dim);background:transparent;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.action-btn:hover{color:var(--text-bright);border-color:var(--text-dim)}
+.action-btn.primary{color:var(--purple2);border-color:var(--purple);background:rgba(123,47,190,.07)}
+.action-btn.primary:hover{box-shadow:0 0 12px var(--purple-glow)}
+.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.user-card{background:var(--bg3);border:1px solid var(--border);padding:20px}
+.user-name{font-family:var(--display);font-size:14px;color:var(--text-bright);font-weight:700;margin-bottom:4px}
+.user-email{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:12px}
+.user-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border2);padding:36px;width:440px;max-width:95vw}
+.modal-title{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text-bright);margin-bottom:24px}
+.modal-actions{display:flex;gap:12px;margin-top:20px}
+.modal-actions .btn{margin-top:0;flex:1}
+.ticker{background:rgba(123,47,190,.04);border-bottom:1px solid rgba(123,47,190,.15);padding:6px 0;overflow:hidden;white-space:nowrap}
+.ticker-inner{display:inline-flex;gap:60px;animation:tick 35s linear infinite}
+.ticker-item{font-family:var(--mono);font-size:10px;color:var(--purple2);letter-spacing:1px;opacity:.7}
+.ticker-item::before{content:'⚛ '}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.empty-state{text-align:center;padding:60px 0;font-family:var(--mono);font-size:12px;color:var(--text-dim)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--panel);border:1px solid var(--border2);padding:14px 20px;font-family:var(--mono);font-size:12px;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:380px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(0,255,136,.4);color:var(--green)}
+.toast.error{border-color:rgba(255,42,42,.4);color:var(--red)}
+.toast.info{border-color:rgba(123,47,190,.4);color:var(--purple2)}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--purple2);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+hr.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 8px;border:1px solid var(--border2);color:var(--text-dim)}
+
+/* Quantum circuit visualizer */
+.circuit-viz{background:var(--bg);border:1px solid var(--border);padding:16px;margin-top:16px;font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+.circuit-row{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+.qubit-label{width:40px;color:var(--cyan);font-size:9px}
+.circuit-line{flex:1;height:1px;background:var(--border2);position:relative}
+.gate{display:inline-flex;align-items:center;justify-content:center;width:28px;height:20px;border:1px solid;font-size:8px;font-weight:bold;margin:0 2px;position:absolute;transform:translateY(-50%)}
+.gate.ry{border-color:var(--purple2);color:var(--purple2);background:rgba(123,47,190,.15)}
+.gate.rz{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.1)}
+.gate.cnot{border-color:var(--amber);color:var(--amber);background:rgba(255,170,0,.1)}
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">QUANTUM<span>WATCH</span></div>
+    <div class="auth-sub">QUANTUM ML INSIDER THREAT DETECTION</div>
+    <div class="auth-qml">⚛ VQC + QSVM · PennyLane · 8 Qubits</div>
+    <div id="login-form">
+      <div class="form-group"><label>Username</label><input type="text" id="login-username" placeholder="username" autocomplete="username"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="btn" onclick="doLogin()">Sign In</button>
+      <div class="auth-err" id="login-err"></div>
+      <div class="auth-switch">No account? <a onclick="showRegister()">Register here</a></div>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="Full name"></div>
+      <div class="form-group"><label>Username</label><input type="text" id="reg-username" placeholder="username"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="email@org.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="min 6 characters"></div>
+      <button class="btn" onclick="doRegister()">Create Account</button>
+      <div class="auth-err" id="reg-err"></div>
+      <div class="auth-switch">Have an account? <a onclick="showLogin()">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <aside>
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">QUANTUM<span>WATCH</span></div>
+      <div class="sidebar-tagline">QUANTUM ML THREAT INTELLIGENCE</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Operations</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" stroke="currentColor" stroke-width="1.5"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('upload')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M4 6l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v2h12v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Upload Logs
+      </div>
+      <div class="nav-item" onclick="showPage('results')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Risk Results
+      </div>
+      <div class="nav-item" onclick="showPage('reports')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Reports
+      </div>
+      <div class="sidebar-section-label">Quantum System</div>
+      <div class="nav-item" onclick="showPage('train')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.41 1.41M11.37 11.37l1.41 1.41" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Train QML Models
+      </div>
+      <div class="nav-item" id="users-nav" onclick="showPage('users')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        User Management
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="model-status-pill">
+        <div class="status-dot inactive" id="model-dot"></div>
+        <span id="model-status-text" style="font-size:10px">QML: Not trained</span>
+      </div>
+      <div class="quantum-badge">
+        <div class="qubit-dot"></div>
+        <div class="qubit-dot"></div>
+        <div class="qubit-dot"></div>
+        <span>8 QUBITS ACTIVE</span>
+      </div>
+    </div>
+  </aside>
+
+  <nav class="topnav">
+    <div class="nav-title" id="nav-title">Quantum Dashboard</div>
+    <div class="nav-right">
+      <div class="nav-user">Logged in as <span id="nav-username"></span></div>
+      <div class="nav-role" id="nav-role"></div>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="ticker">
+      <div class="ticker-inner">
+        <span class="ticker-item">VARIATIONAL QUANTUM CIRCUIT: ACTIVE</span>
+        <span class="ticker-item">QUANTUM KERNEL SVM: READY</span>
+        <span class="ticker-item">PENNYLANE SIMULATOR: 8 QUBITS</span>
+        <span class="ticker-item">ANGLE ENCODING: BEHAVIORAL FEATURES → QUBIT ROTATIONS</span>
+        <span class="ticker-item">ENTANGLEMENT LAYER: CNOT GATES ACTIVE</span>
+        <span class="ticker-item">VARIATIONAL QUANTUM CIRCUIT: ACTIVE</span>
+        <span class="ticker-item">QUANTUM KERNEL SVM: READY</span>
+        <span class="ticker-item">PENNYLANE SIMULATOR: 8 QUBITS</span>
+        <span class="ticker-item">ANGLE ENCODING: BEHAVIORAL FEATURES → QUBIT ROTATIONS</span>
+        <span class="ticker-item">ENTANGLEMENT LAYER: CNOT GATES ACTIVE</span>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header"><h1>Quantum Threat Intelligence Dashboard</h1><p>VQC + QSVM HYBRID DETECTION · 8-QUBIT PENNYLANE CIRCUIT</p></div>
+      <div class="stats-grid">
+        <div class="stat-card red"><div class="stat-label">High Risk</div><div class="stat-val" id="stat-high">—</div></div>
+        <div class="stat-card amber"><div class="stat-label">Medium Risk</div><div class="stat-val" id="stat-med">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Low Risk</div><div class="stat-val" id="stat-low">—</div></div>
+        <div class="stat-card purple"><div class="stat-label">Total Monitored</div><div class="stat-val" id="stat-total">—</div></div>
+      </div>
+      <div class="qml-cards">
+        <div class="qml-card vqc">
+          <div class="qml-card-title">⚛ Variational Quantum Classifier</div>
+          <div class="qml-card-sub">TRAINABLE ROTATION GATES · CNOT ENTANGLEMENT · ADAM OPTIMIZER</div>
+          <div class="qml-metric"><span class="qml-metric-label">Accuracy</span><span class="qml-metric-val" id="vqc-acc">—</span></div>
+          <div class="qml-metric"><span class="qml-metric-label">ROC-AUC</span><span class="qml-metric-val" id="vqc-auc">—</span></div>
+          <div class="qml-metric"><span class="qml-metric-label">Weight in fusion</span><span class="qml-metric-val">55%</span></div>
+        </div>
+        <div class="qml-card qsvm">
+          <div class="qml-card-title">⚛ Quantum Kernel SVM</div>
+          <div class="qml-card-sub">QUANTUM FEATURE MAP · HILBERT SPACE KERNEL · PRECOMPUTED MATRIX</div>
+          <div class="qml-metric"><span class="qml-metric-label">Accuracy</span><span class="qml-metric-val" id="qsvm-acc">—</span></div>
+          <div class="qml-metric"><span class="qml-metric-label">ROC-AUC</span><span class="qml-metric-val" id="qsvm-auc">—</span></div>
+          <div class="qml-metric"><span class="qml-metric-label">Weight in fusion</span><span class="qml-metric-val">45%</span></div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Recent Uploads</div></div>
+          <div class="panel-body" style="padding:0" id="recent-uploads-list"><div class="empty-state" style="padding:40px">No uploads yet</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Quantum Circuit</div></div>
+          <div class="panel-body">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:8px">VQC Architecture (8 qubits, 3 layers):</div>
+            <div class="circuit-viz" id="circuit-display">
+              <div style="color:var(--cyan);margin-bottom:8px;font-size:9px">|ψ⟩ = U(θ)|φ(x)⟩</div>
+              <div id="circuit-lines"></div>
+              <div style="margin-top:8px;font-size:9px;color:var(--text-dim)">RY: rotation-Y gate · RZ: rotation-Z gate · ⊕: CNOT entanglement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Top 10 High-Risk Employees</div><button class="action-btn" onclick="showPage('results')">View All →</button></div>
+        <div class="panel-body" style="padding:0">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Employee ID</th><th>Risk Score</th><th>Level</th><th>VQC Prob</th><th>QSVM</th><th>Department</th><th>Files Burned</th><th>Off-Hrs Prints</th></tr></thead>
+            <tbody id="top-threats-body"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-dim)">Train QML models to see results</td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div id="page-upload" class="page">
+      <div class="page-header"><h1>Upload Behavioral Logs</h1><p>UPLOAD CSV — SAME SCHEMA AS INSIDERWATCH · AUTO COLUMN MAPPING</p></div>
+      <div class="two-col">
+        <div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Upload CSV File</div></div>
+            <div class="panel-body">
+              <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+                <div style="font-size:32px;margin-bottom:12px">⚛</div>
+                <div class="upload-title">Drop CSV here or click to browse</div>
+                <div class="upload-sub" style="margin-top:6px">Max 50MB · Same CSV as InsiderWatch</div>
+                <div class="upload-sub" id="selected-file" style="color:var(--green);margin-top:8px"></div>
+              </div>
+              <input type="file" id="file-input" accept=".csv" onchange="onFileSelect(event)">
+              <div id="validation-box" style="display:none" class="validation-result"></div>
+              <div id="upload-progress" style="display:none">
+                <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:4px" id="progress-text">Uploading...</div>
+              </div>
+              <div style="display:flex;gap:12px;margin-top:16px">
+                <button class="action-btn" onclick="validateFile()">Validate Schema</button>
+                <button class="action-btn primary" id="upload-btn" onclick="doUpload()" disabled>Upload & Process</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">QML Preprocessing</div></div>
+            <div class="panel-body">
+              <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);line-height:2">
+                <div style="color:var(--cyan);margin-bottom:8px">Quantum Feature Pipeline:</div>
+                <div>1. 22-alias column mapping (same as InsiderWatch)</div>
+                <div>2. 6 engineered composite features</div>
+                <div>3. StandardScaler normalization</div>
+                <div>4. PCA → 8 dimensions (n_qubits)</div>
+                <div>5. Rescale to [-π, π] for angle encoding</div>
+                <hr class="divider">
+                <div style="color:var(--purple2)">Why PCA to 8 features?</div>
+                <div>Quantum circuits need one qubit per feature. 8 qubits = 8 features. PCA picks the 8 most informative dimensions from your 27-feature space.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Upload History</div><button class="action-btn" onclick="loadUploadHistory()">↻ Refresh</button></div>
+        <div class="panel-body" style="padding:0" id="upload-history"><div class="empty-state" style="padding:40px">No uploads yet</div></div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="page-results" class="page">
+      <div class="page-header"><h1>Quantum Risk Analysis Results</h1><p>EMPLOYEE RISK SCORES — VQC PROBABILITY + QSVM SCORE FUSED</p></div>
+      <div class="filters">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('high',this)" style="color:var(--red)">High Risk</button>
+        <button class="filter-btn f-medium" onclick="setFilter('medium',this)">Medium Risk</button>
+        <button class="filter-btn f-low" onclick="setFilter('low',this)">Low Risk</button>
+        <input class="search-input" type="text" placeholder="Search employee ID..." id="search-emp" oninput="filterTable()">
+        <span style="flex:1"></span>
+        <button class="action-btn" onclick="exportCSV()">Export CSV</button>
+        <button class="action-btn" onclick="exportPDF()">Export PDF</button>
+      </div>
+      <div class="panel">
+        <div class="panel-body" style="padding:0">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Employee ID</th><th>Risk Score</th><th>Level</th><th>VQC Prob</th><th>QSVM Score</th><th>Department</th><th>Position</th><th>Files Burned</th><th>Off-Hrs Prints</th><th>Predicted</th></tr></thead>
+            <tbody id="results-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-dim)">Loading...</td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;margin-top:8px" id="results-count"></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="page-reports" class="page">
+      <div class="page-header"><h1>Generate Reports</h1><p>EXPORT QUANTUM ML RISK DATA</p></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">PDF Report</div></div>
+          <div class="panel-body">
+            <p style="font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.8;margin-bottom:20px">Formatted PDF with VQC and QSVM scores, risk statistics, and top-200 employee table.</p>
+            <div class="form-group"><label>Filter by Risk Level</label>
+              <select id="pdf-filter" style="width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text-bright);font-family:var(--mono);font-size:12px;padding:8px;outline:none">
+                <option value="">All Employees</option><option value="high">High Risk Only</option><option value="medium">Medium Risk Only</option><option value="low">Low Risk Only</option>
+              </select>
+            </div>
+            <button class="action-btn primary" style="width:100%;padding:12px" onclick="downloadPDF()">Download PDF Report</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">CSV Export</div></div>
+          <div class="panel-body">
+            <p style="font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.8;margin-bottom:20px">Full export with VQC probabilities, QSVM scores, and risk tiers.</p>
+            <div class="form-group"><label>Filter by Risk Level</label>
+              <select id="csv-filter" style="width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text-bright);font-family:var(--mono);font-size:12px;padding:8px;outline:none">
+                <option value="">All Employees</option><option value="high">High Risk Only</option><option value="medium">Medium Risk Only</option><option value="low">Low Risk Only</option>
+              </select>
+            </div>
+            <button class="action-btn primary" style="width:100%;padding:12px" onclick="exportCSV()">Download CSV Export</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRAIN -->
+    <div id="page-train" class="page">
+      <div class="page-header"><h1>Train Quantum ML Models</h1><p>VARIATIONAL QUANTUM CIRCUIT + QUANTUM KERNEL SVM · PENNYLANE SIMULATOR</p></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Training Configuration</div></div>
+          <div class="panel-body">
+            <div class="form-group"><label>Select Upload (needs is_malicious column)</label>
+              <select id="train-upload-select" style="width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text-bright);font-family:var(--mono);font-size:12px;padding:8px;outline:none">
+                <option value="">Loading...</option>
+              </select>
+            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);line-height:2;margin-bottom:20px;background:var(--bg);padding:12px;border:1px solid var(--border)">
+              <div style="color:var(--cyan);margin-bottom:6px">Quantum Circuit Parameters:</div>
+              <div>⚛ Qubits: 8 (from .env N_QUBITS)</div>
+              <div>⚛ VQC Layers: 3 (from .env N_LAYERS)</div>
+              <div>⚛ Training epochs: 30 (from .env QML_EPOCHS)</div>
+              <div>⚛ Training subsample: 5,000 records</div>
+              <div>⚛ QSVM kernel matrix: 500×500</div>
+              <div style="color:var(--amber);margin-top:8px">⚠ Training time: 15–45 minutes</div>
+              <div style="color:var(--amber)">Quantum simulation is slower than classical ML</div>
+            </div>
+            <button class="action-btn primary" style="width:100%;padding:12px" id="train-btn" onclick="doTrain()">Train QML Models</button>
+            <div id="train-spinner" style="display:none;text-align:center;margin-top:16px">
+              <div class="spinner"></div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:8px">Quantum circuit training in progress...</div>
+              <div style="font-family:var(--mono);font-size:9px;color:var(--purple2);margin-top:4px">VQC → QSVM → Saving artifacts</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Training Results</div></div>
+          <div class="panel-body" id="train-results"><div class="empty-state">Train QML models to see metrics</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">How Quantum ML Works</div></div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim)">
+            <div>
+              <div style="color:var(--purple2);font-size:12px;margin-bottom:8px">A) Variational Quantum Classifier</div>
+              <div>1. PCA reduces 27 features → 8 dimensions</div>
+              <div>2. Features encoded as RY rotation angles on 8 qubits</div>
+              <div>3. 3 variational layers: RY + RZ rotations (trainable)</div>
+              <div>4. CNOT entanglement links adjacent qubits</div>
+              <div>5. Measure ⟨Z⟩ expectation value → threat probability</div>
+              <div>6. Adam optimizer trains rotation parameters</div>
+            </div>
+            <div>
+              <div style="color:var(--cyan);font-size:12px;margin-bottom:8px">B) Quantum Kernel SVM</div>
+              <div>1. Same angle encoding as VQC</div>
+              <div>2. Kernel K(x₁,x₂) = |⟨φ(x₁)|φ(x₂)⟩|²</div>
+              <div>3. Measures similarity in quantum Hilbert space</div>
+              <div>4. Classical SVM trained on quantum kernel matrix</div>
+              <div>5. Captures non-linear patterns classical SVM misses</div>
+            </div>
+          </div>
+          <hr class="divider">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">
+            <div style="color:var(--text-bright);margin-bottom:6px">Risk Score Fusion:</div>
+            <div style="color:var(--purple2)">R = (0.55 × VQC_Prob + 0.45 × QSVM_Norm) × 100</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="page-users" class="page">
+      <div class="page-header"><h1>User Management</h1><p>ADMIN ONLY</p></div>
+      <div style="margin-bottom:20px"><button class="action-btn primary" onclick="openAddUser()">+ Add User</button></div>
+      <div class="users-grid" id="users-grid"><div class="empty-state">Loading...</div></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="add-user-modal">
+  <div class="modal">
+    <div class="modal-title">Add New User</div>
+    <div class="form-group"><label>Full Name</label><input type="text" id="new-name" placeholder="Full name"></div>
+    <div class="form-group"><label>Username</label><input type="text" id="new-username" placeholder="username"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="new-email" placeholder="email@org.com"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="new-password" placeholder="min 6 characters"></div>
+    <div class="form-group"><label>Role</label>
+      <select id="new-role" style="width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text-bright);font-family:var(--mono);font-size:12px;padding:8px;outline:none">
+        <option value="viewer">Viewer</option><option value="analyst">Analyst</option><option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="auth-err" id="add-user-err"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('add-user-modal')">Cancel</button>
+      <button class="btn" onclick="doAddUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let authToken = localStorage.getItem('qw_token') || null;
+let currentUser = null;
+let currentUploadId = null;
+let allResults = [];
+let activeFilter = 'all';
+
+function toast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+async function api(path, opts={}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store',
+    ...(opts.headers || {})
+  };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const res = await fetch(API + path + (path.includes('?') ? '&' : '?') + '_t=' + Date.now(), {...opts, headers});
+  if (res.status === 401) { doLogout(); return null; }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  return data;
+}
+
+// Draw quantum circuit visualization
+function drawCircuit(nQubits = 8, nLayers = 3) {
+  const el = document.getElementById('circuit-lines');
+  if (!el) return;
+  const gates = ['RY', 'RZ', '⊕'];
+  let html = '';
+  for (let q = 0; q < Math.min(nQubits, 4); q++) {
+    html += `<div class="circuit-row">
+      <span class="qubit-label">|q${q}⟩</span>
+      <div style="flex:1;position:relative;height:20px">
+        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border2)"></div>
+        ${Array.from({length: nLayers}, (_, l) =>
+          `<span style="position:absolute;left:${10 + l*30}%;top:50%;transform:translateY(-50%);
+           display:inline-flex;align-items:center;justify-content:center;
+           width:26px;height:18px;border:1px solid var(--purple2);
+           font-size:7px;font-weight:bold;color:var(--purple2);
+           background:rgba(123,47,190,.15);font-family:var(--mono)">${l%2===0?'RY':'RZ'}</span>`
+        ).join('')}
+        <span style="position:absolute;left:80%;top:50%;transform:translateY(-50%);
+           display:inline-flex;align-items:center;justify-content:center;
+           width:26px;height:18px;border:1px solid var(--amber);
+           font-size:10px;color:var(--amber);background:rgba(255,170,0,.1);font-family:var(--mono)">⊕</span>
+      </div>
+    </div>`;
+  }
+  if (nQubits > 4) html += `<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);padding:4px 0">... ${nQubits-4} more qubits ...</div>`;
+  el.innerHTML = html;
+}
+
+// Auth
+function showRegister() { document.getElementById('login-form').style.display='none'; document.getElementById('register-form').style.display='block'; }
+function showLogin() { document.getElementById('register-form').style.display='none'; document.getElementById('login-form').style.display='block'; }
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const err = document.getElementById('login-err');
+  err.textContent = '';
+  if (!username || !password) { err.textContent='Fill in all fields'; return; }
+  try {
+    const data = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username, password})
+    }).then(r => r.json());
+    if (data.detail) { err.textContent=data.detail; return; }
+    authToken = data.access_token;
+    currentUser = data.user;
+    localStorage.setItem('qw_token', authToken);
+    bootApp();
+  } catch(e) { err.textContent=e.message; }
+}
+
+async function doRegister() {
+  const err = document.getElementById('reg-err');
+  err.textContent = '';
+  const payload = {
+    full_name: document.getElementById('reg-name').value.trim(),
+    username:  document.getElementById('reg-username').value.trim(),
+    email:     document.getElementById('reg-email').value.trim(),
+    password:  document.getElementById('reg-password').value,
+    role: 'viewer'
+  };
+  if (!payload.username||!payload.email||!payload.password) { err.textContent='Fill all fields'; return; }
+  try {
+    const res = await fetch('/api/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    const data = await res.json();
+    if (!res.ok) { err.textContent=data.detail; return; }
+    toast('Account created — please log in', 'success');
+    showLogin();
+  } catch(e) { err.textContent=e.message; }
+}
+
+function doLogout() {
+  authToken=null; currentUser=null; currentUploadId=null; allResults=[];
+  localStorage.removeItem('qw_token');
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+async function bootApp() {
+  if (!authToken) return;
+  try {
+    if (!currentUser) {
+      const res = await fetch('/api/auth/me', {headers:{'Authorization':`Bearer ${authToken}`}});
+      if (!res.ok) { doLogout(); return; }
+      currentUser = await res.json();
+    }
+  } catch { doLogout(); return; }
+
+  document.getElementById('auth-overlay').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('nav-username').textContent = currentUser.username;
+  document.getElementById('nav-role').textContent = currentUser.role;
+  document.getElementById('nav-role').className = `nav-role ${currentUser.role}`;
+  if (currentUser.role !== 'admin') document.getElementById('users-nav').style.display='none';
+
+  drawCircuit(8, 3);
+  await loadLatestUploadId();
+  loadDashboard();
+  checkModelStatus();
+}
+
+async function loadLatestUploadId() {
+  try {
+    const uploads = await fetch('/api/uploads/', {
+      headers: {'Authorization':`Bearer ${authToken}`, 'Cache-Control':'no-cache'}
+    }).then(r => r.json());
+    if (!uploads || !uploads.length) return;
+    const completed = uploads.filter(u => u.status==='completed')
+                              .sort((a,b) => new Date(b.processed_at||0) - new Date(a.processed_at||0));
+    if (completed.length) currentUploadId = completed[0].id;
+  } catch(e) { console.warn('loadLatestUploadId:', e); }
+}
+
+const PAGE_TITLES = {dashboard:'Quantum Dashboard',upload:'Upload Logs',results:'Quantum Risk Results',reports:'Reports',train:'Train QML Models',users:'User Management'};
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes(`'${name}'`)) n.classList.add('active');
+  });
+  document.getElementById('nav-title').textContent = PAGE_TITLES[name]||name;
+  if (name==='upload')  loadUploadHistory();
+  if (name==='results') loadResults();
+  if (name==='train')   loadTrainUploads();
+  if (name==='users')   loadUsers();
+}
+
+async function loadDashboard() {
+  try {
+    const stats = await api('/api/ml/dashboard');
+    if (!stats) return;
+    document.getElementById('stat-high').textContent  = stats.high_risk;
+    document.getElementById('stat-med').textContent   = stats.medium_risk;
+    document.getElementById('stat-low').textContent   = stats.low_risk;
+    document.getElementById('stat-total').textContent = stats.total_employees;
+    if (stats.vqc_accuracy) {
+      document.getElementById('vqc-acc').textContent = (stats.vqc_accuracy*100).toFixed(1)+'%';
+      document.getElementById('vqc-auc').textContent = (stats.vqc_roc_auc*100).toFixed(1)+'%';
+      document.getElementById('qsvm-acc').textContent = (stats.qsvm_accuracy*100).toFixed(1)+'%';
+      document.getElementById('qsvm-auc').textContent = (stats.qsvm_roc_auc*100).toFixed(1)+'%';
+    }
+    const uploads = await api('/api/uploads/');
+    const listEl = document.getElementById('recent-uploads-list');
+    if (uploads && uploads.length) {
+      listEl.innerHTML = uploads.slice(0,5).map(u => `
+        <div class="upload-list-item">
+          <div>
+            <div style="color:var(--text-bright);font-size:12px">${u.original_name}</div>
+            <div style="color:var(--text-dim);font-size:9px;margin-top:2px">${u.row_count||'?'} rows · ${new Date(u.uploaded_at).toLocaleDateString()}</div>
+          </div>
+          <span class="status-pill ${u.status}">${u.status}</span>
+        </div>`).join('');
+    }
+    if (currentUploadId) {
+      const threats = await api(`/api/ml/top-threats/${currentUploadId}?n=10`);
+      if (threats) renderTopThreats(threats);
+    }
+  } catch(e) { console.warn('Dashboard:', e.message); }
+}
+
+function renderTopThreats(data) {
+  const tbody = document.getElementById('top-threats-body');
+  if (!data.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-dim)">No results</td></tr>'; return; }
+  tbody.innerHTML = data.map(r => {
+    const pct = r.risk_score||0;
+    const cls = pct>=67?'h':pct>=34?'m':'l';
+    const lvl = r.risk_level||'low';
+    return `<tr>
+      <td style="color:var(--text-bright)">${r.employee_id||'—'}</td>
+      <td><div class="score-bar-cell"><div class="score-bar-track"><div class="score-bar-fill ${cls}" style="width:${pct}%"></div></div><span>${pct?.toFixed(1)}</span></div></td>
+      <td><span class="risk-badge ${lvl}">${lvl.toUpperCase()}</span></td>
+      <td style="color:var(--purple2)">${r.vqc_prob?.toFixed(3)||'—'}</td>
+      <td style="color:var(--cyan)">${r.qsvm_normalized?.toFixed(3)||'—'}</td>
+      <td>${r.department||'—'}</td>
+      <td>${r.total_files_burned?.toFixed(0)||'0'}</td>
+      <td>${r.num_printed_pages_off_hours?.toFixed(0)||'0'}</td>
+    </tr>`;
+  }).join('');
+}
+
+let selectedFile = null;
+function onFileSelect(e) {
+  selectedFile = e.target.files[0];
+  if (selectedFile) {
+    document.getElementById('selected-file').textContent = `Selected: ${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(2)} MB)`;
+    document.getElementById('upload-btn').disabled = false;
+  }
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) { selectedFile=file; document.getElementById('selected-file').textContent=`Selected: ${file.name}`; document.getElementById('upload-btn').disabled=false; }
+  else toast('Please drop a CSV file','error');
+}
+
+async function validateFile() {
+  if (!selectedFile) { toast('Select a file first','error'); return; }
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+  try {
+    const res = await fetch('/api/uploads/validate', {method:'POST', headers:{Authorization:`Bearer ${authToken}`}, body:formData});
+    const data = await res.json();
+    const box = document.getElementById('validation-box');
+    box.style.display='block';
+    let html = `<div class="${data.valid?'val-ok':'val-err'}">${data.valid?'✓ Schema valid':'✗ Schema invalid'}</div>`;
+    html += `<div>Rows: ${data.row_count} · Columns: ${data.column_count}</div>`;
+    if (data.missing_columns.length) html+=`<div class="val-err">Missing: ${data.missing_columns.join(', ')}</div>`;
+    data.warnings.forEach(w => html+=`<div class="val-warn">⚠ ${w}</div>`);
+    data.errors.forEach(e => html+=`<div class="val-err">✗ ${e}</div>`);
+    box.innerHTML = html;
+  } catch(e) { toast('Validation failed: '+e.message,'error'); }
+}
+
+async function doUpload() {
+  if (!selectedFile) { toast('Select a file first','error'); return; }
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+  const prog=document.getElementById('upload-progress');
+  const fill=document.getElementById('progress-fill');
+  const txt=document.getElementById('progress-text');
+  prog.style.display='block'; fill.style.width='20%'; txt.textContent='Uploading...';
+  try {
+    const res = await fetch('/api/uploads/', {method:'POST', headers:{Authorization:`Bearer ${authToken}`}, body:formData});
+    fill.style.width='60%'; txt.textContent='Processing...';
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail);
+    fill.style.width='100%'; txt.textContent='Done!';
+    currentUploadId = data.id;
+    toast(`Upload successful — ${data.row_count} rows`, 'success');
+    setTimeout(()=>{prog.style.display='none';fill.style.width='0%';},2000);
+    loadUploadHistory();
+  } catch(e) { fill.style.width='0%'; txt.textContent=''; toast('Upload failed: '+e.message,'error'); }
+}
+
+async function loadUploadHistory() {
+  try {
+    const uploads = await api('/api/uploads/');
+    const el = document.getElementById('upload-history');
+    if (!uploads||!uploads.length) { el.innerHTML='<div class="empty-state" style="padding:40px">No uploads yet</div>'; return; }
+    el.innerHTML = uploads.map(u => `
+      <div class="upload-list-item">
+        <div>
+          <div style="color:var(--text-bright);font-size:12px">${u.original_name}</div>
+          <div style="color:var(--text-dim);font-size:9px;margin-top:2px">ID:${u.id} · ${u.row_count||'?'} rows · ${new Date(u.uploaded_at).toLocaleString()}</div>
+          ${u.error_message?`<div style="color:var(--red);font-size:9px">${u.error_message}</div>`:''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="status-pill ${u.status}">${u.status}</span>
+          ${u.status==='pending'||u.status==='failed'?`<button class="action-btn" onclick="processUpload(${u.id})">Process</button>`:''}
+          ${u.status==='completed'?`<button class="action-btn" onclick="viewResults(${u.id})">View</button>`:''}
+        </div>
+      </div>`).join('');
+  } catch(e) { console.warn(e); }
+}
+
+async function processUpload(id) {
+  try {
+    await api(`/api/uploads/${id}/process`, {method:'POST'});
+    toast('Quantum processing started — this takes 5-15 mins', 'info');
+    setTimeout(loadUploadHistory, 10000);
+  } catch(e) { toast(e.message,'error'); }
+}
+function viewResults(id) { currentUploadId=id; showPage('results'); }
+
+async function loadResults() {
+  await loadLatestUploadId();
+  if (!currentUploadId) {
+    document.getElementById('results-body').innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-dim)">No processed uploads found.</td></tr>';
+    return;
+  }
+  document.getElementById('results-body').innerHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text-dim)"><div class="spinner" style="margin:0 auto"></div></td></tr>';
+  try {
+    const data = await fetch(`/api/ml/results/${currentUploadId}?limit=50000&_t=${Date.now()}`, {
+      headers:{'Authorization':`Bearer ${authToken}`,'Cache-Control':'no-cache'}
+    }).then(r => r.json());
+    allResults = Array.isArray(data) ? data : [];
+    filterTable();
+  } catch(e) { toast('Could not load results: '+e.message,'error'); }
+}
+
+function setFilter(level, btn) {
+  activeFilter=level;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterTable();
+}
+
+function filterTable() {
+  const search = document.getElementById('search-emp').value.toLowerCase();
+  let rows = allResults;
+  if (activeFilter!=='all') rows=rows.filter(r=>r.risk_level===activeFilter);
+  if (search) rows=rows.filter(r=>r.employee_id?.toLowerCase().includes(search));
+  document.getElementById('results-count').textContent=`Showing ${rows.length} of ${allResults.length} employees`;
+  const tbody=document.getElementById('results-body');
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-dim)">No results match filter</td></tr>'; return; }
+  tbody.innerHTML = rows.slice(0,500).map(r => {
+    const pct=r.risk_score||0;
+    const cls=pct>=67?'h':pct>=34?'m':'l';
+    const lvl=r.risk_level||'low';
+    return `<tr>
+      <td style="color:var(--text-bright)">${r.employee_id||'—'}</td>
+      <td><div class="score-bar-cell"><div class="score-bar-track"><div class="score-bar-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div><span>${pct?.toFixed(1)}</span></div></td>
+      <td><span class="risk-badge ${lvl}">${lvl.toUpperCase()}</span></td>
+      <td style="color:var(--purple2)">${r.vqc_prob?.toFixed(3)||'—'}</td>
+      <td style="color:var(--cyan)">${r.qsvm_normalized?.toFixed(3)||'—'}</td>
+      <td>${r.department||'—'}</td>
+      <td>${r.position||'—'}</td>
+      <td>${r.total_files_burned?.toFixed(0)||'0'}</td>
+      <td>${r.num_printed_pages_off_hours?.toFixed(0)||'0'}</td>
+      <td><span style="color:${r.is_malicious_pred?'var(--red)':'var(--green)'}">${r.is_malicious_pred?'THREAT':'NORMAL'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function exportCSV() {
+  if (!currentUploadId) { toast('No upload selected','error'); return; }
+  const filter=document.getElementById('csv-filter')?.value||'';
+  downloadWithAuth(`/api/reports/${currentUploadId}/csv${filter?'?risk_level='+filter:''}`);
+}
+function downloadPDF() {
+  if (!currentUploadId) { toast('No upload selected','error'); return; }
+  const filter=document.getElementById('pdf-filter')?.value||'';
+  downloadWithAuth(`/api/reports/${currentUploadId}/pdf${filter?'?risk_level='+filter:''}`);
+}
+async function downloadWithAuth(url) {
+  try {
+    const res=await fetch(url,{headers:{Authorization:`Bearer ${authToken}`}});
+    if (!res.ok) { toast('Export failed','error'); return; }
+    const blob=await res.blob();
+    const disp=res.headers.get('Content-Disposition')||'';
+    const name=disp.match(/filename=([^\s;]+)/)?.[1]||'export';
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=name;a.click();
+    URL.revokeObjectURL(a.href);
+  } catch(e) { toast('Download error: '+e.message,'error'); }
+}
+
+async function loadTrainUploads() {
+  const uploads=await api('/api/uploads/');
+  const sel=document.getElementById('train-upload-select');
+  if (!uploads?.length) { sel.innerHTML='<option value="">No uploads found</option>'; return; }
+  sel.innerHTML=uploads.map(u=>`<option value="${u.id}">${u.original_name} (${u.row_count} rows) — ID:${u.id}</option>`).join('');
+}
+
+async function doTrain() {
+  const uploadId=document.getElementById('train-upload-select').value;
+  if (!uploadId) { toast('Select an upload first','error'); return; }
+  if (currentUser.role!=='admin') { toast('Admin role required','error'); return; }
+  document.getElementById('train-btn').disabled=true;
+  document.getElementById('train-spinner').style.display='block';
+  document.getElementById('train-results').innerHTML='<div class="empty-state">Quantum circuit training in progress...<br><span style="color:var(--purple2);font-size:10px">This takes 15-45 minutes</span></div>';
+  try {
+    const result=await api('/api/ml/train',{method:'POST',body:JSON.stringify({upload_id:parseInt(uploadId)})});
+    document.getElementById('train-results').innerHTML=`
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:12px">
+        <div style="color:var(--cyan);margin-bottom:8px">⚛ Quantum Circuit: ${result.n_qubits} qubits · ${result.n_layers} layers</div>
+        <div>Training samples: ${result.train_samples?.toLocaleString()} | Epochs: ${result.epochs}</div>
+        <div>PCA variance explained: ${(result.pca_variance*100).toFixed(1)}%</div>
+        <div>Final VQC loss: ${result.loss_final?.toFixed(4)}</div>
+      </div>
+      <div class="train-metrics">
+        <div class="metric-box"><div class="metric-val">${(result.vqc_accuracy*100).toFixed(1)}%</div><div class="metric-label">VQC Accuracy</div></div>
+        <div class="metric-box"><div class="metric-val" style="color:var(--cyan)">${(result.vqc_roc_auc*100).toFixed(1)}%</div><div class="metric-label">VQC AUC</div></div>
+        <div class="metric-box"><div class="metric-val" style="color:var(--green)">${(result.vqc_f1*100).toFixed(1)}%</div><div class="metric-label">VQC F1</div></div>
+      </div>
+      <div class="train-metrics" style="margin-top:12px">
+        <div class="metric-box"><div class="metric-val">${(result.qsvm_accuracy*100).toFixed(1)}%</div><div class="metric-label">QSVM Accuracy</div></div>
+        <div class="metric-box"><div class="metric-val" style="color:var(--cyan)">${(result.qsvm_roc_auc*100).toFixed(1)}%</div><div class="metric-label">QSVM AUC</div></div>
+        <div class="metric-box"><div class="metric-val" style="color:var(--green)">${(result.qsvm_f1*100).toFixed(1)}%</div><div class="metric-label">QSVM F1</div></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:12px">✓ ${result.message}</div>`;
+    toast('QML models trained! Now upload and process your CSV.','success');
+    checkModelStatus();
+  } catch(e) {
+    document.getElementById('train-results').innerHTML=`<div class="empty-state" style="color:var(--red)">${e.message}</div>`;
+    toast('Training failed: '+e.message,'error');
+  } finally {
+    document.getElementById('train-btn').disabled=false;
+    document.getElementById('train-spinner').style.display='none';
+  }
+}
+
+async function checkModelStatus() {
+  try {
+    const status=await api('/api/ml/model-status');
+    const dot=document.getElementById('model-dot');
+    const text=document.getElementById('model-status-text');
+    if (status?.models_trained) {
+      dot.className='status-dot active';
+      text.textContent=`VQC: ${((status.active_model?.vqc_roc_auc||0)*100).toFixed(1)}% AUC`;
+    } else {
+      dot.className='status-dot inactive';
+      text.textContent='QML: Not trained';
+    }
+  } catch {}
+}
+
+async function loadUsers() {
+  try {
+    const users=await api('/api/auth/users');
+    const grid=document.getElementById('users-grid');
+    if (!users?.length) { grid.innerHTML='<div class="empty-state">No users</div>'; return; }
+    grid.innerHTML=users.map(u=>`
+      <div class="user-card">
+        <div class="user-name">${u.full_name||u.username}</div>
+        <div class="user-email">${u.email}</div>
+        <div class="user-meta">
+          <span class="nav-role ${u.role}" style="font-size:9px">${u.role.toUpperCase()}</span>
+          <span class="tag">${u.is_active?'ACTIVE':'INACTIVE'}</span>
+          ${u.id!==currentUser.id?`<button class="action-btn" style="font-size:9px;padding:3px 10px" onclick="deleteUser(${u.id},'${u.username}')">Remove</button>`:'<span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">(you)</span>'}
+        </div>
+      </div>`).join('');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function openAddUser() { document.getElementById('add-user-modal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function doAddUser() {
+  const err=document.getElementById('add-user-err');
+  err.textContent='';
+  const payload={full_name:document.getElementById('new-name').value.trim(),username:document.getElementById('new-username').value.trim(),email:document.getElementById('new-email').value.trim(),password:document.getElementById('new-password').value,role:document.getElementById('new-role').value};
+  if (!payload.username||!payload.email||!payload.password) { err.textContent='Fill all fields'; return; }
+  try {
+    await api('/api/auth/register',{method:'POST',body:JSON.stringify(payload)});
+    toast('User created','success');
+    closeModal('add-user-modal');
+    loadUsers();
+  } catch(e) { err.textContent=e.message; }
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`Delete user "${name}"?`)) return;
+  try { await api(`/api/auth/users/${id}`,{method:'DELETE'}); toast('User deleted','success'); loadUsers(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  ['login-username','login-password'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  });
+  if (authToken) bootApp();
+});
+</script>
+</body>
+</html>
